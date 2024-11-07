@@ -102,36 +102,59 @@ class ProposalResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => auth()->user()->isWakil()),
+                Tables\Actions\Action::make('approve')
+                    ->label('Approve')
+                    ->action(function ($record) {
+                        $record->update([
+                            'proposal_status' => 'APPROVED',
+                            'proposal_approver_id' => auth()->id(),
+                        ]);
+                    })
+                    ->requiresConfirmation()
+                    ->color('success')
+                    ->visible(fn($record) => $record->proposal_status === 'PENDING' && auth()->user()->isDireksi()),
+
+                Tables\Actions\Action::make('reject')
+                    ->label('Reject')
+                    ->action(function ($record) {
+                        $record->update([
+                            'proposal_status' => 'REJECTED',
+                            'proposal_approver_id' => auth()->id(),
+                        ]);
+                    })
+                    ->requiresConfirmation()
+                    ->color('danger')
+                    ->visible(fn($record) => $record->proposal_status === 'PENDING' && auth()->user()->isDireksi()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('APPROVED')
-                        ->label('APPROVED')
-                        ->action(function ($records) {
-                            foreach ($records as $record) {
-                                $record->update([
-                                    'proposal_status' => 'APPROVED',
-                                    'proposal_approver_id' => auth()->id(),
-                                ]);
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->color('success')
-                        ->visible(fn($records) => auth()->user()->isDireksi()),
-                    Tables\Actions\BulkAction::make('REJECTED')
-                        ->label('REJECTED')
-                        ->action(function ($records) {
-                            foreach ($records as $record) {
-                                $record->update([
-                                    'proposal_status' => 'REJECTED',
-                                    'proposal_approver_id' => auth()->id(),
-                                ]);
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->color('danger')
-                        ->visible(fn($records) => auth()->user()->isDireksi()),
+                    // Tables\Actions\BulkAction::make('APPROVED')
+                    //     ->label('APPROVED')
+                    //     ->action(function ($records) {
+                    //         foreach ($records as $record) {
+                    //             $record->update([
+                    //                 'proposal_status' => 'APPROVED',
+                    //                 'proposal_approver_id' => auth()->id(),
+                    //             ]);
+                    //         }
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->color('success')
+                    //     ->visible(fn($records) => auth()->user()->isDireksi()),
+                    // Tables\Actions\BulkAction::make('REJECTED')
+                    //     ->label('REJECTED')
+                    //     ->action(function ($records) {
+                    //         foreach ($records as $record) {
+                    //             $record->update([
+                    //                 'proposal_status' => 'REJECTED',
+                    //                 'proposal_approver_id' => auth()->id(),
+                    //             ]);
+                    //         }
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->color('danger')
+                    //     ->visible(fn($records) => auth()->user()->isDireksi()),
                 ]),
             ]);
     }
@@ -215,17 +238,15 @@ class ProposalResource extends Resource
             ]);
     }
 
-    //     public static function getEloquentQuery(): Builder
-// {
-//     $user = auth()->user();
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
 
-    //     if ($user->role === 'WAKIL') {
-//         return parent::getEloquentQuery()
-//             ->whereHas('initiator', function ($query) use ($user) {
-//                 $query->where('proposal_initiator_id', $user->id);
-//             });
-//     }
+        if ($user->role === 'WAKIL') {
+            return parent::getEloquentQuery()
+                ->where('proposal_initiator_id', $user->id);
+        }
 
-    //     return parent::getEloquentQuery();
-// }
+        return parent::getEloquentQuery();
+    }
 }
